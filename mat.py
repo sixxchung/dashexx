@@ -1,5 +1,6 @@
 from dash import Input, Output, Dash, dcc, html
 import dash_bootstrap_components as dbc
+import dash
 import matplotlib.pyplot as plt
 import numpy as np
 import plotnine as p9
