@@ -40,6 +40,9 @@ sidebarPanel = dbc.Card([
         dbc.Label("Cluster count"),
         dbc.Input(id="cluster-count", type="number", min=1, max=6, value=3),
     ]),
+    html.Div([
+        dcc.Store(id='intermediate-data'),
+    ]),
 ], body=True,)
 graphs = dcc.Graph(id="cluster-graph")
 app.layout = dbc.Container(
@@ -55,17 +58,33 @@ app.layout = dbc.Container(
 
 
 @app.callback(
-    Output("cluster-graph", "figure"),
+    Output('intermediate-data', 'data'),
     [
         Input("x-variable", "value"),
         Input("y-variable", "value"),
+    ],
+)
+def make_data(x, y):
+    df = iris.loc[:, [x, y]]
+    print(df)
+    return df.to_json()
+
+
+@app.callback(
+    Output("cluster-graph", "figure"),
+    [
+        # Input("x-variable", "value"),
+        # Input("y-variable", "value"),
+        Input('intermediate-data', 'data'),
         Input("cluster-count", "value"),
     ],
 )
-def make_graph(x, y, n_clusters):
+def make_graph(jsonified_data, n_clusters):
     # minimal input validation, make sure there's at least one cluster
+    df = pd.read_json(jsonified_data)
+
     km = KMeans(n_clusters=max(n_clusters, 1))
-    df = iris.loc[:, [x, y]]
+    #df = iris.loc[:, [x, y]]
     km.fit(df.values)
     df["cluster"] = km.labels_
 
@@ -73,8 +92,8 @@ def make_graph(x, y, n_clusters):
 
     data = [
         go.Scatter(
-            x=df.loc[df.cluster == c, x],
-            y=df.loc[df.cluster == c, y],
+            x=df.loc[df.cluster == c, df.columns[0]],  # x],
+            y=df.loc[df.cluster == c, df.columns[1]],  # y],
             mode="markers",
             marker={"size": 8},
             name="Cluster {}".format(c),
@@ -92,7 +111,9 @@ def make_graph(x, y, n_clusters):
         )
     )
 
-    layout = {"xaxis": {"title": x}, "yaxis": {"title": y}}
+    layout = {
+        "xaxis": {"title": df.columns[0]},
+        "yaxis": {"title": df.columns[0]}}
 
     return go.Figure(data=data, layout=layout)
 
